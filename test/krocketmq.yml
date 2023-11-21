@@ -1,0 +1,14 @@
+go:
+  config:
+    server_type: file
+    env: test
+    type: .yml
+    mid: "-"
+    path: /home/ke666/my_codes/go_codes/krocketmq/test
+    used: rocketmq
+    prefix:
+      rocketmq: k-rocketmq
+  logger:
+    level: debug
+    out: console,file
+    file: /opt/logs/krocketmq

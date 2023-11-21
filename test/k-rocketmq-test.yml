@@ -1,0 +1,13 @@
+go:
+  rocketmq:
+    name_servers:
+      - 192.168.20.130:9876
+    producer:
+      retry_count: 2
+      timeout: 5
+      topic_queue_nums: 16
+      group: sjProductGroup
+    consumer:
+      timeout: 5
+      group: sjConsumerGroup
+
