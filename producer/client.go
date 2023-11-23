@@ -81,6 +81,23 @@ func (r *producerClient) Init(rocketmqConfigUrl string) {
 	}
 }
 
+func (r *producerClient) InitConfig(conf *model.Config) {
+	if r.conn == nil {
+		p, err := rocketmq.NewProducer(
+			producer.WithNameServer(conf.NameServers),         // 接入点地址
+			producer.WithRetry(conf.ProductConfig.RetryCount), // 重试次数
+			producer.WithGroupName(conf.ProductConfig.Group),  // 分组名称
+			producer.WithSendMsgTimeout(time.Duration(conf.ProductConfig.Timeout)*time.Second),
+			producer.WithDefaultTopicQueueNums(conf.ProductConfig.TopicQueueNums),
+		)
+		if err != nil {
+			logger.Error(fmt.Sprintf("RocketMQ创建生产者错误:%s\n", err.Error()))
+		} else {
+			r.conn = p
+		}
+	}
+}
+
 func (r *producerClient) GetConnection() rocketmq.Producer {
 	return r.conn
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/apache/rocketmq-client-go/v2/consumer"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
 	"github.com/ketianlin/kgin/logs"
+	"github.com/ketianlin/krocketmq/model"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/rawbytes"
@@ -26,6 +27,22 @@ type consumerClient struct {
 
 var ConsumerClient = &consumerClient{}
 var logger = gologger.GetLogger()
+
+func (r *consumerClient) InitConfig(conf *model.Config) {
+	if r.conn == nil {
+		c, err := rocketmq.NewPushConsumer(
+			consumer.WithNameServer(conf.NameServers), // 接入点地址
+			consumer.WithConsumerModel(consumer.Clustering),
+			consumer.WithGroupName(conf.ConsumerConfig.Group), // 分组名称
+			consumer.WithConsumeTimeout(time.Duration(conf.ConsumerConfig.Timeout)*time.Second),
+		)
+		if err != nil {
+			logger.Error(fmt.Sprintf("RocketMQ创建消费者错误:%s\n", err.Error()))
+		} else {
+			r.conn = c
+		}
+	}
+}
 
 func (r *consumerClient) Init(rocketmqConfigUrl string) {
 	if rocketmqConfigUrl != "" {

@@ -25,6 +25,27 @@ func TestRocketMq(t *testing.T) {
 	select {}
 }
 
+func TestRocketMqByConfig(t *testing.T) {
+	mc := model.Config{
+		NameServers: []string{"192.168.20.130:9876"},
+		ProductConfig: model.ProductConfig{
+			RetryCount:     2,
+			TopicQueueNums: 16,
+			Timeout:        5,
+			Group:          "sjProductGroup",
+		},
+		ConsumerConfig: model.ConsumerConfig{
+			Timeout: 5,
+			Group:   "sjConsumerGroup",
+		},
+	}
+	producer.ProducerClient.InitConfig(&mc)
+	consumer.ConsumerClient.InitConfig(&mc)
+	go ListenRMQ()
+	SendMessage()
+	select {}
+}
+
 type testEventHandler struct{}
 
 var Test testEventHandler
@@ -55,7 +76,7 @@ func ListenRMQ() {
 func SendMessage() {
 	logs.Debug("rocketmq生产者发消息拉……")
 	err := producer.ProducerClient.SendSync(&model.TopicMessage{
-		Msg:       "吊毛来了",
+		Msg:       "吊毛来了99999999999999",
 		TopicName: TopicName,
 		Tags:      "sj-tag",
 		Keys:      []string{"sj-key"},
