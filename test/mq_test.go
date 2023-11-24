@@ -14,6 +14,10 @@ import (
 
 const TopicName = "sj18"
 
+func TestClose(t *testing.T) {
+	producer.ProducerClient.Close()
+}
+
 func TestRocketMq(t *testing.T) {
 	configFile := "/home/ke666/my_codes/go_codes/krocketmq/test/krocketmq.yml"
 	fmt.Println(configFile)
@@ -21,7 +25,9 @@ func TestRocketMq(t *testing.T) {
 	kgin.KGin.Use("rocketmq", producer.ProducerClient.Init, producer.ProducerClient.Close, nil)
 	kgin.KGin.Use("rocketmq", consumer.ConsumerClient.Init, consumer.ConsumerClient.Close, nil)
 	go ListenRMQ()
-	SendMessage()
+	//SendMessage()
+	//producer.ProducerClient.Close()
+	//producer.ProducerClient.Close()
 	select {}
 }
 
@@ -36,7 +42,7 @@ func TestRocketMqByConfig(t *testing.T) {
 		},
 		ConsumerConfig: model.ConsumerConfig{
 			Timeout: 5,
-			Group:   "sjConsumerGroup",
+			Group:   "sjConsumerGroup2",
 		},
 	}
 	producer.ProducerClient.InitConfig(&mc)

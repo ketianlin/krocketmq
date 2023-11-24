@@ -6,6 +6,7 @@ import (
 	"github.com/apache/rocketmq-client-go/v2"
 	"github.com/apache/rocketmq-client-go/v2/consumer"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
+
 	"github.com/ketianlin/kgin/logs"
 	"github.com/ketianlin/krocketmq/model"
 	"github.com/knadh/koanf"
@@ -96,10 +97,12 @@ func (r *consumerClient) Init(rocketmqConfigUrl string) {
 }
 
 func (r *consumerClient) Close() {
-	err := r.conn.Shutdown()
-	if err != nil {
-		logger.Error(fmt.Sprintf("RocketMQ关闭消费者client错误:%s\n", err.Error()))
-		return
+	if r.conn != nil {
+		err := r.conn.Shutdown()
+		if err != nil {
+			logger.Error(fmt.Sprintf("RocketMQ关闭消费者client错误:%s\n", err.Error()))
+			return
+		}
 	}
 }
 

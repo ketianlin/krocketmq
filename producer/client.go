@@ -103,10 +103,12 @@ func (r *producerClient) GetConnection() rocketmq.Producer {
 }
 
 func (r *producerClient) Close() {
-	err := r.conn.Shutdown()
-	if err != nil {
-		logger.Error(fmt.Sprintf("RocketMQ关闭生产者client错误:%s\n", err.Error()))
-		return
+	if r.conn != nil {
+		err := r.conn.Shutdown()
+		if err != nil {
+			logger.Error(fmt.Sprintf("RocketMQ关闭生产者client错误:%s\n", err.Error()))
+			return
+		}
 	}
 }
 
