@@ -41,6 +41,7 @@ func (r *consumerClient) InitConfig(conf *model.Config) {
 			logger.Error(fmt.Sprintf("RocketMQ创建消费者错误:%s\n", err.Error()))
 		} else {
 			r.conn = c
+			logger.Error("当前 krocketmq 版本：v1.0.4")
 		}
 	}
 }
