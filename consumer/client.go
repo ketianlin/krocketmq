@@ -104,6 +104,7 @@ func (r *consumerClient) Close() {
 			return
 		}
 	}
+	r.conn = nil
 }
 
 func (r *consumerClient) MessageListener(topicName string, listener func(msg []byte)) {
@@ -120,6 +121,12 @@ func (r *consumerClient) MessageListener(topicName string, listener func(msg []b
 	forever := make(chan bool)
 	err = r.conn.Start()
 	if err != nil {
+		defer func(conn rocketmq.PushConsumer) {
+			err := conn.Shutdown()
+			if err != nil {
+				logger.Error(fmt.Sprintf("RocketMQ消费者监听错误后关闭:%s\n", err.Error()))
+			}
+		}(r.conn)
 		log.Fatal(err)
 	}
 	<-forever

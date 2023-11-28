@@ -110,6 +110,7 @@ func (r *producerClient) Close() {
 			return
 		}
 	}
+	r.conn = nil
 }
 
 func (r *producerClient) SendSync(message *model.TopicMessage) error {

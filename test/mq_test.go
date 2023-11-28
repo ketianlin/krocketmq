@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-const TopicName = "sj18"
+const TopicName = "Queue_809_FuQing_Up"
 
 func TestClose(t *testing.T) {
 	producer.ProducerClient.Close()
