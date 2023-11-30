@@ -33,7 +33,7 @@ func TestRocketMq(t *testing.T) {
 
 func TestRocketMqByConfig(t *testing.T) {
 	mc := model.Config{
-		NameServers: []string{"192.168.20.131:9876"},
+		NameServers: []string{"192.168.20.130:9876"},
 		ProductConfig: model.ProductConfig{
 			RetryCount:     2,
 			TopicQueueNums: 16,
@@ -48,9 +48,17 @@ func TestRocketMqByConfig(t *testing.T) {
 	producer.ProducerClient.InitConfig(&mc, func(err error) {
 		fmt.Println("err: ", err)
 	})
+	if err := producer.ProducerClient.GetCloseError(); err != nil {
+		fmt.Println("初始化生产者失败：", err.Error())
+		return
+	}
 	consumer.ConsumerClient.InitConfig(&mc, func(im *model.InitCallbackMessage) {
 		fmt.Println("im: ", im)
 	})
+	if err := consumer.ConsumerClient.GetCloseError(); err != nil {
+		fmt.Println("初始化消费者失败：", err.Error())
+		return
+	}
 	go ListenRMQ()
 	SendMessage()
 	select {}
