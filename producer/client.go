@@ -19,9 +19,10 @@ import (
 )
 
 type producerClient struct {
-	conf    *koanf.Koanf
-	confUrl string
-	conn    rocketmq.Producer
+	conf       *koanf.Koanf
+	confUrl    string
+	conn       rocketmq.Producer
+	closeError error
 }
 
 var ProducerClient = &producerClient{}
@@ -81,7 +82,7 @@ func (r *producerClient) Init(rocketmqConfigUrl string) {
 	}
 }
 
-func (r *producerClient) InitConfig(conf *model.Config) {
+func (r *producerClient) InitConfig(conf *model.Config, callback func(err error)) {
 	if r.conn == nil {
 		p, err := rocketmq.NewProducer(
 			producer.WithNameServer(conf.NameServers),         // 接入点地址
@@ -92,6 +93,7 @@ func (r *producerClient) InitConfig(conf *model.Config) {
 		)
 		if err != nil {
 			logger.Error(fmt.Sprintf("RocketMQ创建生产者错误:%s\n", err.Error()))
+			callback(err)
 		} else {
 			r.conn = p
 		}
@@ -107,10 +109,16 @@ func (r *producerClient) Close() {
 		err := r.conn.Shutdown()
 		if err != nil {
 			logger.Error(fmt.Sprintf("RocketMQ关闭生产者client错误:%s\n", err.Error()))
+			r.closeError = err
 			return
 		}
 	}
 	r.conn = nil
+}
+
+// GetCloseError 获取关闭的error
+func (r *producerClient) GetCloseError() error {
+	return r.closeError
 }
 
 func (r *producerClient) SendSync(message *model.TopicMessage) error {

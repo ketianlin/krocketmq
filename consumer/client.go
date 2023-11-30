@@ -21,15 +21,16 @@ import (
 )
 
 type consumerClient struct {
-	conf    *koanf.Koanf
-	confUrl string
-	conn    rocketmq.PushConsumer
+	conf       *koanf.Koanf
+	confUrl    string
+	conn       rocketmq.PushConsumer
+	closeError error
 }
 
 var ConsumerClient = &consumerClient{}
 var logger = gologger.GetLogger()
 
-func (r *consumerClient) InitConfig(conf *model.Config) {
+func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.InitCallbackMessage)) {
 	if r.conn == nil {
 		c, err := rocketmq.NewPushConsumer(
 			consumer.WithNameServer(conf.NameServers), // 接入点地址
@@ -37,12 +38,17 @@ func (r *consumerClient) InitConfig(conf *model.Config) {
 			consumer.WithGroupName(conf.ConsumerConfig.Group), // 分组名称
 			consumer.WithConsumeTimeout(time.Duration(conf.ConsumerConfig.Timeout)*time.Second),
 		)
+		cm := new(model.InitCallbackMessage)
 		if err != nil {
 			logger.Error(fmt.Sprintf("RocketMQ创建消费者错误:%s\n", err.Error()))
+			cm.InitError = err
 		} else {
 			r.conn = c
-			logger.Error("当前 krocketmq 版本：v1.0.4")
+			logger.Debug("当前 krocketmq 版本：v1.0.5")
+			cm.Version = "当前 krocketmq 版本：v1.0.5"
+			cm.IsSuccessful = true
 		}
+		callback(cm)
 	}
 }
 
@@ -97,18 +103,23 @@ func (r *consumerClient) Init(rocketmqConfigUrl string) {
 	}
 }
 
+func (r *consumerClient) GetCloseError() error {
+	return r.closeError
+}
+
 func (r *consumerClient) Close() {
 	if r.conn != nil {
 		err := r.conn.Shutdown()
 		if err != nil {
 			logger.Error(fmt.Sprintf("RocketMQ关闭消费者client错误:%s\n", err.Error()))
+			r.closeError = err
 			return
 		}
 	}
 	r.conn = nil
 }
 
-func (r *consumerClient) MessageListener(topicName string, listener func(msg []byte)) {
+func (r *consumerClient) MessageListener(topicName string, listener func(msg []byte), callbacks ...func(err error)) {
 	err := r.conn.Subscribe(topicName, consumer.MessageSelector{}, func(ctx context.Context, msg ...*primitive.MessageExt) (consumer.ConsumeResult, error) {
 		for _, v := range msg {
 			//fmt.Println("收到：", string(v.Body)) // v.Body : 消息主体
@@ -118,6 +129,9 @@ func (r *consumerClient) MessageListener(topicName string, listener func(msg []b
 	})
 	if err != nil {
 		logger.Error(fmt.Sprintf("RocketMQ消费者监听错误:%s\n", err.Error()))
+		if len(callbacks) > 0 {
+			callbacks[0](err)
+		}
 	}
 	forever := make(chan bool)
 	err = r.conn.Start()
@@ -126,6 +140,9 @@ func (r *consumerClient) MessageListener(topicName string, listener func(msg []b
 			err := conn.Shutdown()
 			if err != nil {
 				logger.Error(fmt.Sprintf("RocketMQ消费者监听错误后关闭:%s\n", err.Error()))
+				if len(callbacks) > 0 {
+					callbacks[0](err)
+				}
 			}
 		}(r.conn)
 		log.Fatal(err)

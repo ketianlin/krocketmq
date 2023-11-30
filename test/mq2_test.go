@@ -37,14 +37,18 @@ func TestRocketMqByConfig2(t *testing.T) {
 			Group:   "sjConsumerGroup2",
 		},
 	}
-	consumer.ConsumerClient.InitConfig(&mc)
+	consumer.ConsumerClient.InitConfig(&mc, func(im *model.InitCallbackMessage) {
+		fmt.Println(im)
+	})
 	go ListenRMQ()
 	time.Sleep(time.Second * 2)
 	consumer.ConsumerClient.Close()
 	fmt.Println("9999")
 	time.Sleep(time.Second * 2)
 	fmt.Println("99999")
-	consumer.ConsumerClient.InitConfig(&mc)
+	consumer.ConsumerClient.InitConfig(&mc, func(im *model.InitCallbackMessage) {
+		fmt.Println(im)
+	})
 	go ListenRMQ()
 	select {}
 }

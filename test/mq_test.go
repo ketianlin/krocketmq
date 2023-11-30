@@ -12,7 +12,7 @@ import (
 	"testing"
 )
 
-const TopicName = "Queue_809_FuQing_Up"
+const TopicName = "sj17"
 
 func TestClose(t *testing.T) {
 	producer.ProducerClient.Close()
@@ -25,7 +25,7 @@ func TestRocketMq(t *testing.T) {
 	kgin.KGin.Use("rocketmq", producer.ProducerClient.Init, producer.ProducerClient.Close, nil)
 	kgin.KGin.Use("rocketmq", consumer.ConsumerClient.Init, consumer.ConsumerClient.Close, nil)
 	go ListenRMQ()
-	//SendMessage()
+	SendMessage()
 	//producer.ProducerClient.Close()
 	//producer.ProducerClient.Close()
 	select {}
@@ -33,7 +33,7 @@ func TestRocketMq(t *testing.T) {
 
 func TestRocketMqByConfig(t *testing.T) {
 	mc := model.Config{
-		NameServers: []string{"192.168.20.130:9876"},
+		NameServers: []string{"192.168.20.131:9876"},
 		ProductConfig: model.ProductConfig{
 			RetryCount:     2,
 			TopicQueueNums: 16,
@@ -45,8 +45,12 @@ func TestRocketMqByConfig(t *testing.T) {
 			Group:   "sjConsumerGroup2",
 		},
 	}
-	producer.ProducerClient.InitConfig(&mc)
-	consumer.ConsumerClient.InitConfig(&mc)
+	producer.ProducerClient.InitConfig(&mc, func(err error) {
+		fmt.Println("err: ", err)
+	})
+	consumer.ConsumerClient.InitConfig(&mc, func(im *model.InitCallbackMessage) {
+		fmt.Println("im: ", im)
+	})
 	go ListenRMQ()
 	SendMessage()
 	select {}
@@ -76,7 +80,9 @@ func safeHandler(msg []byte, handler func(msg []byte)) {
 
 func ListenRMQ() {
 	logs.Debug("rocketmq客户端 获取连接成功")
-	consumer.ConsumerClient.MessageListener(TopicName, Test.handleExpireMsg)
+	consumer.ConsumerClient.MessageListener(TopicName, Test.handleExpireMsg, func(err error) {
+		fmt.Println("MessageListener error: ", err.Error())
+	})
 }
 
 func SendMessage() {
