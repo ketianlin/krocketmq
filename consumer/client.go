@@ -2,11 +2,11 @@ package consumer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/apache/rocketmq-client-go/v2"
 	"github.com/apache/rocketmq-client-go/v2/consumer"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
-
 	"github.com/ketianlin/kgin/logs"
 	"github.com/ketianlin/krocketmq/model"
 	"github.com/knadh/koanf"
@@ -16,6 +16,7 @@ import (
 	"github.com/sadlil/gologger"
 	"io/ioutil"
 	"log"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -44,8 +45,8 @@ func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.
 			cm.InitError = err
 		} else {
 			r.conn = c
-			logger.Debug("当前 krocketmq 版本：v1.0.5")
-			cm.Version = "当前 krocketmq 版本：v1.0.5"
+			logger.Debug("当前 krocketmq 版本：v1.0.6")
+			cm.Version = "当前 krocketmq 版本：v1.0.6"
 			cm.IsSuccessful = true
 		}
 		callback(cm)
@@ -109,6 +110,20 @@ func (r *consumerClient) GetCloseError() error {
 
 func (r *consumerClient) Close() {
 	if r.conn != nil {
+		defer func() {
+			if e := recover(); e != nil {
+				switch e := e.(type) {
+				case string:
+					r.closeError = errors.New(e)
+				case runtime.Error:
+					r.closeError = errors.New(e.Error())
+				case error:
+					r.closeError = e
+				default:
+					r.closeError = errors.New("RocketMQ关闭消费者client错误")
+				}
+			}
+		}()
 		err := r.conn.Shutdown()
 		if err != nil {
 			logger.Error(fmt.Sprintf("RocketMQ关闭消费者client错误:%s\n", err.Error()))

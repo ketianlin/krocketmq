@@ -48,19 +48,23 @@ func TestRocketMqByConfig(t *testing.T) {
 	producer.ProducerClient.InitConfig(&mc, func(err error) {
 		fmt.Println("err: ", err)
 	})
+	// 关闭生产者判断
+	producer.ProducerClient.Close()
 	if err := producer.ProducerClient.GetCloseError(); err != nil {
-		fmt.Println("初始化生产者失败：", err.Error())
+		fmt.Println("关闭生产者失败：", err.Error())
 		return
 	}
 	consumer.ConsumerClient.InitConfig(&mc, func(im *model.InitCallbackMessage) {
 		fmt.Println("im: ", im)
 	})
+	// 关闭消费者判断
+	consumer.ConsumerClient.Close()
 	if err := consumer.ConsumerClient.GetCloseError(); err != nil {
-		fmt.Println("初始化消费者失败：", err.Error())
+		fmt.Println("关闭消费者失败：", err.Error())
 		return
 	}
-	go ListenRMQ()
-	SendMessage()
+	//go ListenRMQ()
+	//SendMessage()
 	select {}
 }
 
