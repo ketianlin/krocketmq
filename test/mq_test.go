@@ -24,8 +24,8 @@ func TestRocketMq(t *testing.T) {
 	config.Config.Init(configFile)
 	kgin.KGin.Use("rocketmq", producer.ProducerClient.Init, producer.ProducerClient.Close, nil)
 	kgin.KGin.Use("rocketmq", consumer.ConsumerClient.Init, consumer.ConsumerClient.Close, nil)
-	go ListenRMQ()
-	SendMessage()
+	//go ListenRMQ()
+	//SendMessage()
 	//producer.ProducerClient.Close()
 	//producer.ProducerClient.Close()
 	select {}

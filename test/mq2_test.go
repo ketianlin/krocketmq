@@ -25,23 +25,24 @@ func TestRocketMqByConfig3(t *testing.T) {
 
 func TestRocketMqByConfig2(t *testing.T) {
 	mc := model.Config{
-		NameServers: []string{"192.168.20.135:9876"},
+		NameServers: []string{"192.168.20.130:9876"},
 		ProductConfig: model.ProductConfig{
 			RetryCount:     2,
 			TopicQueueNums: 16,
 			Timeout:        5,
-			Group:          "sjProductGroup",
+			Group:          "sjProductGroup333",
 		},
 		ConsumerConfig: model.ConsumerConfig{
-			Timeout: 5,
-			Group:   "sjConsumerGroup2",
+			Timeout:        5,
+			Group:          "sjConsumerGroup333",
+			MonitoringTime: 3,
 		},
 	}
 	consumer.ConsumerClient.InitConfig(&mc, func(im *model.InitCallbackMessage) {
 		fmt.Println(im)
 	})
 	go ListenRMQ()
-	time.Sleep(time.Second * 2)
+	//time.Sleep(time.Second * 2)
 	consumer.ConsumerClient.Close()
 	fmt.Println("9999")
 	time.Sleep(time.Second * 2)

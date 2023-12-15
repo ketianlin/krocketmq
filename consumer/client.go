@@ -26,6 +26,7 @@ type consumerClient struct {
 	confUrl    string
 	conn       rocketmq.PushConsumer
 	closeError error
+	config     *model.Config
 }
 
 var ConsumerClient = &consumerClient{}
@@ -45,10 +46,19 @@ func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.
 			cm.InitError = err
 		} else {
 			r.conn = c
-			logger.Debug("当前 krocketmq 版本：v1.0.6")
-			cm.Version = "当前 krocketmq 版本：v1.0.6"
+			logger.Debug("当前 krocketmq 版本：v1.0.7")
+			cm.Version = "当前 krocketmq 版本：v1.0.7"
 			cm.IsSuccessful = true
+			r.config = conf
 		}
+		// 设置定时任务自动检查
+		//ticker := time.NewTicker(time.Minute * time.Duration(conf.ConsumerConfig.MonitoringTime))
+		ticker := time.NewTicker(time.Second * time.Duration(conf.ConsumerConfig.MonitoringTime))
+		go func() {
+			for _ = range ticker.C {
+				_ = r.MqCheck()
+			}
+		}()
 		callback(cm)
 	}
 }
@@ -163,4 +173,21 @@ func (r *consumerClient) MessageListener(topicName string, listener func(msg []b
 		log.Fatal(err)
 	}
 	<-forever
+}
+
+func (r *consumerClient) MqCheck() error {
+	if r.conn == nil {
+		fmt.Println("aaaaaaaaaaaaaaa")
+		if r.confUrl != "" {
+			fmt.Println("bbbbbbbbbbbbbbb")
+			r.Init(r.confUrl)
+		} else {
+			fmt.Println("ccccccccccccccc")
+			r.InitConfig(r.config, func(im *model.InitCallbackMessage) {
+				logs.Debug("MqCheck running...")
+				logs.Debug("InitCallbackMessage: {}", im)
+			})
+		}
+	}
+	return nil
 }

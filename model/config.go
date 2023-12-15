@@ -14,6 +14,7 @@ type ProductConfig struct {
 }
 
 type ConsumerConfig struct {
-	Timeout int
-	Group   string
+	Timeout        int
+	Group          string
+	MonitoringTime int // 监测时间 单位（分钟）
 }
