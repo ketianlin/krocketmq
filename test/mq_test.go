@@ -25,7 +25,8 @@ func TestRocketMq(t *testing.T) {
 	kgin.KGin.Use("rocketmq", producer.ProducerClient.Init, producer.ProducerClient.Close, nil)
 	kgin.KGin.Use("rocketmq", consumer.ConsumerClient.Init, consumer.ConsumerClient.Close, nil)
 	//go ListenRMQ()
-	//SendMessage()
+	go ListenRMQNew()
+	SendMessage()
 	//producer.ProducerClient.Close()
 	//producer.ProducerClient.Close()
 	select {}
@@ -79,6 +80,13 @@ func (o *testEventHandler) handleExpireMsg(msg []byte) {
 	})
 }
 
+func (o *testEventHandler) handleExpireMsgNew(topicName string, msg []byte) {
+	logs.Debug("topic: 【{}】, 接收到原始消息 {}", topicName, string(msg))
+	safeHandler(msg, func(msg []byte) {
+		logs.Info("topic: 【{}】, 打印序列化后消息：{}", topicName, string(msg))
+	})
+}
+
 func safeHandler(msg []byte, handler func(msg []byte)) {
 	go func() {
 		defer func() {
@@ -88,6 +96,13 @@ func safeHandler(msg []byte, handler func(msg []byte)) {
 		}()
 		handler(msg)
 	}()
+}
+
+func ListenRMQNew() {
+	logs.Debug("rocketmq客户端 获取连接成功")
+	consumer.ConsumerClient.MessageListenerNew(TopicName, Test.handleExpireMsgNew, func(err error) {
+		fmt.Println("MessageListener error: ", err.Error())
+	})
 }
 
 func ListenRMQ() {

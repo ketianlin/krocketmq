@@ -46,8 +46,8 @@ func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.
 			cm.InitError = err
 		} else {
 			r.conn = c
-			logger.Debug("当前 krocketmq 版本：v1.0.7")
-			cm.Version = "当前 krocketmq 版本：v1.0.7"
+			logger.Debug("当前 krocketmq 版本：v1.0.8")
+			cm.Version = "当前 krocketmq 版本：v1.0.8"
 			cm.IsSuccessful = true
 			r.config = conf
 		}
@@ -149,6 +149,37 @@ func (r *consumerClient) MessageListener(topicName string, listener func(msg []b
 		for _, v := range msg {
 			//fmt.Println("收到：", string(v.Body)) // v.Body : 消息主体
 			go listener(v.Body)
+		}
+		return consumer.ConsumeSuccess, nil
+	})
+	if err != nil {
+		logger.Error(fmt.Sprintf("RocketMQ消费者监听错误:%s\n", err.Error()))
+		if len(callbacks) > 0 {
+			callbacks[0](err)
+		}
+	}
+	forever := make(chan bool)
+	err = r.conn.Start()
+	if err != nil {
+		defer func(conn rocketmq.PushConsumer) {
+			err := conn.Shutdown()
+			if err != nil {
+				logger.Error(fmt.Sprintf("RocketMQ消费者监听错误后关闭:%s\n", err.Error()))
+				if len(callbacks) > 0 {
+					callbacks[0](err)
+				}
+			}
+		}(r.conn)
+		log.Fatal(err)
+	}
+	<-forever
+}
+
+func (r *consumerClient) MessageListenerNew(topicName string, listener func(topicName string, msg []byte), callbacks ...func(err error)) {
+	err := r.conn.Subscribe(topicName, consumer.MessageSelector{}, func(ctx context.Context, msg ...*primitive.MessageExt) (consumer.ConsumeResult, error) {
+		for _, v := range msg {
+			//fmt.Println("收到：", string(v.Body)) // v.Body : 消息主体
+			go listener(topicName, v.Body)
 		}
 		return consumer.ConsumeSuccess, nil
 	})
