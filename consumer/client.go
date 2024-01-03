@@ -192,16 +192,17 @@ func (r *consumerClient) MessageListenerNew(topicName string, listener func(topi
 	forever := make(chan bool)
 	err = r.conn.Start()
 	if err != nil {
-		defer func(conn rocketmq.PushConsumer) {
-			err := conn.Shutdown()
-			if err != nil {
-				logger.Error(fmt.Sprintf("RocketMQ消费者订阅【%s】主题错误后关闭:%s\n", topicName, err.Error()))
-				if len(callbacks) > 0 {
-					callbacks[0](err)
-				}
-			}
-		}(r.conn)
-		log.Fatal(err)
+		err2 := r.conn.Shutdown()
+		errAll := err
+		if err2 != nil {
+			errAll = errors.Join(errAll, err2)
+		}
+		errMsg := fmt.Sprintf("RocketMQ消费者启动监听【%s】主题失败:%s\n", topicName, errAll.Error())
+		logger.Error(errMsg)
+		if len(callbacks) > 0 {
+			callbacks[0](err)
+		}
+		log.Fatal(errors.New(errMsg))
 	}
 	<-forever
 }
