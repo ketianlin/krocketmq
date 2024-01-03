@@ -46,8 +46,8 @@ func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.
 			cm.InitError = err
 		} else {
 			r.conn = c
-			logger.Debug("当前 krocketmq 版本：v1.0.8")
-			cm.Version = "当前 krocketmq 版本：v1.0.8"
+			logger.Debug("当前 krocketmq 版本：v1.0.9")
+			cm.Version = "当前 krocketmq 版本：v1.0.9"
 			cm.IsSuccessful = true
 			r.config = conf
 		}
@@ -153,7 +153,7 @@ func (r *consumerClient) MessageListener(topicName string, listener func(msg []b
 		return consumer.ConsumeSuccess, nil
 	})
 	if err != nil {
-		logger.Error(fmt.Sprintf("RocketMQ消费者监听错误:%s\n", err.Error()))
+		logger.Error(fmt.Sprintf("RocketMQ消费者订阅【%s】主题失败，错误:%s\n", topicName, err.Error()))
 		if len(callbacks) > 0 {
 			callbacks[0](err)
 		}
@@ -164,7 +164,7 @@ func (r *consumerClient) MessageListener(topicName string, listener func(msg []b
 		defer func(conn rocketmq.PushConsumer) {
 			err := conn.Shutdown()
 			if err != nil {
-				logger.Error(fmt.Sprintf("RocketMQ消费者监听错误后关闭:%s\n", err.Error()))
+				logger.Error(fmt.Sprintf("RocketMQ消费者订阅【%s】主题错误后关闭:%s\n", topicName, err.Error()))
 				if len(callbacks) > 0 {
 					callbacks[0](err)
 				}
@@ -184,7 +184,7 @@ func (r *consumerClient) MessageListenerNew(topicName string, listener func(topi
 		return consumer.ConsumeSuccess, nil
 	})
 	if err != nil {
-		logger.Error(fmt.Sprintf("RocketMQ消费者监听错误:%s\n", err.Error()))
+		logger.Error(fmt.Sprintf("RocketMQ消费者订阅【%s】主题失败，错误:%s\n", topicName, err.Error()))
 		if len(callbacks) > 0 {
 			callbacks[0](err)
 		}
@@ -195,7 +195,7 @@ func (r *consumerClient) MessageListenerNew(topicName string, listener func(topi
 		defer func(conn rocketmq.PushConsumer) {
 			err := conn.Shutdown()
 			if err != nil {
-				logger.Error(fmt.Sprintf("RocketMQ消费者监听错误后关闭:%s\n", err.Error()))
+				logger.Error(fmt.Sprintf("RocketMQ消费者订阅【%s】主题错误后关闭:%s\n", topicName, err.Error()))
 				if len(callbacks) > 0 {
 					callbacks[0](err)
 				}
@@ -208,12 +208,12 @@ func (r *consumerClient) MessageListenerNew(topicName string, listener func(topi
 
 func (r *consumerClient) MqCheck() error {
 	if r.conn == nil {
-		fmt.Println("aaaaaaaaaaaaaaa")
+		fmt.Println("MQ连接 r.conn 连接为空：准备初始化MQ连接")
 		if r.confUrl != "" {
-			fmt.Println("bbbbbbbbbbbbbbb")
+			logs.Debug("{} 连接不为空，使用配置文件重新初始化MQ连接", r.confUrl)
 			r.Init(r.confUrl)
 		} else {
-			fmt.Println("ccccccccccccccc")
+			logs.Debug("{} 配置类不为空，使用配置类重新初始化MQ连接", r.config)
 			r.InitConfig(r.config, func(im *model.InitCallbackMessage) {
 				logs.Debug("MqCheck running...")
 				logs.Debug("InitCallbackMessage: {}", im)
