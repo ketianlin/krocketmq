@@ -114,15 +114,17 @@ func ListenRMQ() {
 
 func SendMessage() {
 	logs.Debug("rocketmq生产者发消息拉……")
-	err := producer.ProducerClient.SendSync(&model.TopicMessage{
-		Msg:       "吊毛来了99999999999999",
-		TopicName: TopicName,
-		Tags:      "sj-tag",
-		Keys:      []string{"sj-key"},
-	})
-	if err != nil {
-		logs.Error("rocketmq发送消息失败")
-		return
+	for i := 0; i < 20; i++ {
+		err := producer.ProducerClient.SendSync(&model.TopicMessage{
+			Msg:       fmt.Sprintf("吊毛来了99999999999999-%d", i),
+			TopicName: TopicName,
+			Tags:      "sj-tag",
+			Keys:      []string{"sj-key"},
+		})
+		if err != nil {
+			logs.Error("rocketmq发送消息失败")
+			return
+		}
+		logs.Info("发送成功")
 	}
-	logs.Info("发送成功")
 }

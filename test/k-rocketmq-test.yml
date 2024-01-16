@@ -1,7 +1,7 @@
 go:
   rocketmq:
     name_servers:
-      - 192.168.20.130:9876
+      - 192.168.20.135:9876
     producer:
       retry_count: 2
       timeout: 5

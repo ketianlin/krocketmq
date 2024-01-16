@@ -134,6 +134,25 @@ func (r *producerClient) SendSync(message *model.TopicMessage) error {
 	}
 	msg.WithTag(message.Tags)
 	msg.WithKeys(message.Keys)
+
 	_, err = r.conn.SendSync(context.Background(), msg)
+	//fmt.Println(a)
+	return err
+}
+
+func (r *producerClient) SendOne(message *model.TopicMessage) error {
+	var err error
+	err = r.conn.Start()
+	if err != nil {
+		logger.Error(fmt.Sprintf("RocketMQ生产者Start错误:%s\n", err.Error()))
+		return err
+	}
+	msg := &primitive.Message{
+		Topic: message.TopicName,
+		Body:  []byte(message.Msg),
+	}
+	msg.WithTag(message.Tags)
+	msg.WithKeys(message.Keys)
+	err = r.conn.SendOneWay(context.Background(), msg)
 	return err
 }

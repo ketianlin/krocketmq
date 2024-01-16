@@ -46,8 +46,8 @@ func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.
 			cm.InitError = err
 		} else {
 			r.conn = c
-			logger.Debug("当前 krocketmq 版本：v1.0.10")
-			cm.Version = "当前 krocketmq 版本：v1.0.10"
+			logger.Debug("当前 krocketmq 版本：v1.0.11")
+			cm.Version = "当前 krocketmq 版本：v1.0.11"
 			cm.IsSuccessful = true
 			r.config = conf
 		}
@@ -105,6 +105,7 @@ func (r *consumerClient) Init(rocketmqConfigUrl string) {
 			consumer.WithConsumerModel(consumer.Clustering),
 			consumer.WithGroupName(consumerGroup), // 分组名称
 			consumer.WithConsumeTimeout(time.Duration(timeout)*time.Second),
+			consumer.WithConsumerOrder(true),
 		)
 		if err != nil {
 			logger.Error(fmt.Sprintf("RocketMQ创建消费者错误:%s\n", err.Error()))
