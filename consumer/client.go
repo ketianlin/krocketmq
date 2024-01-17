@@ -39,6 +39,7 @@ func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.
 			consumer.WithConsumerModel(consumer.Clustering),
 			consumer.WithGroupName(conf.ConsumerConfig.Group), // 分组名称
 			consumer.WithConsumeTimeout(time.Duration(conf.ConsumerConfig.Timeout)*time.Second),
+			consumer.WithConsumerOrder(true),
 		)
 		cm := new(model.InitCallbackMessage)
 		if err != nil {
@@ -46,8 +47,8 @@ func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.
 			cm.InitError = err
 		} else {
 			r.conn = c
-			logger.Debug("当前 krocketmq 版本：v1.0.11")
-			cm.Version = "当前 krocketmq 版本：v1.0.11"
+			logger.Debug("当前 krocketmq 版本：v1.0.12")
+			cm.Version = "当前 krocketmq 版本：v1.0.12"
 			cm.IsSuccessful = true
 			r.config = conf
 		}
