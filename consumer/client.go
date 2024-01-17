@@ -177,6 +177,36 @@ func (r *consumerClient) MessageListener(topicName string, listener func(msg []b
 	<-forever
 }
 
+func (r *consumerClient) MessageListenerReturnFullMessage(topicName string, listener func(msg *primitive.MessageExt), callbacks ...func(err error)) {
+	err := r.conn.Subscribe(topicName, consumer.MessageSelector{}, func(ctx context.Context, msg ...*primitive.MessageExt) (consumer.ConsumeResult, error) {
+		for _, v := range msg {
+			go listener(v)
+		}
+		return consumer.ConsumeSuccess, nil
+	})
+	if err != nil {
+		logger.Error(fmt.Sprintf("RocketMQ消费者订阅【%s】主题失败，错误:%s\n", topicName, err.Error()))
+		if len(callbacks) > 0 {
+			callbacks[0](err)
+		}
+	}
+	forever := make(chan bool)
+	err = r.conn.Start()
+	if err != nil {
+		defer func(conn rocketmq.PushConsumer) {
+			err := conn.Shutdown()
+			if err != nil {
+				logger.Error(fmt.Sprintf("RocketMQ消费者订阅【%s】主题错误后关闭:%s\n", topicName, err.Error()))
+				if len(callbacks) > 0 {
+					callbacks[0](err)
+				}
+			}
+		}(r.conn)
+		log.Fatal(err)
+	}
+	<-forever
+}
+
 func (r *consumerClient) MessageListenerNew(topicName string, listener func(topicName string, msg []byte), callbacks ...func(err error)) {
 	err := r.conn.Subscribe(topicName, consumer.MessageSelector{}, func(ctx context.Context, msg ...*primitive.MessageExt) (consumer.ConsumeResult, error) {
 		for _, v := range msg {

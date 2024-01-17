@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"github.com/apache/rocketmq-client-go/v2/primitive"
 	"github.com/ketianlin/kgin"
 	"github.com/ketianlin/kgin/config"
 	"github.com/ketianlin/kgin/logs"
@@ -24,8 +25,8 @@ func TestRocketMq(t *testing.T) {
 	config.Config.Init(configFile)
 	kgin.KGin.Use("rocketmq", producer.ProducerClient.Init, producer.ProducerClient.Close, nil)
 	kgin.KGin.Use("rocketmq", consumer.ConsumerClient.Init, consumer.ConsumerClient.Close, nil)
-	//go ListenRMQ()
-	go ListenRMQNew()
+	go ListenRMQ()
+	//go ListenRMQNew()
 	SendMessage()
 	//producer.ProducerClient.Close()
 	//producer.ProducerClient.Close()
@@ -73,6 +74,13 @@ type testEventHandler struct{}
 
 var Test testEventHandler
 
+func (o *testEventHandler) handleExpireFullMsg(msg *primitive.MessageExt) {
+	logs.Debug("接收到原始消息 {},-------{}", msg.MsgId, string(msg.Body))
+	//safeHandler(msg, func(msg []byte) {
+	//	logs.Info("打印序列化后消息：{}", string(msg))
+	//})
+}
+
 func (o *testEventHandler) handleExpireMsg(msg []byte) {
 	logs.Debug("接收到原始消息 {}", string(msg))
 	safeHandler(msg, func(msg []byte) {
@@ -107,7 +115,10 @@ func ListenRMQNew() {
 
 func ListenRMQ() {
 	logs.Debug("rocketmq客户端 获取连接成功")
-	consumer.ConsumerClient.MessageListener(TopicName, Test.handleExpireMsg, func(err error) {
+	//consumer.ConsumerClient.MessageListener(TopicName, Test.handleExpireMsg, func(err error) {
+	//	fmt.Println("MessageListener error: ", err.Error())
+	//})
+	consumer.ConsumerClient.MessageListenerReturnFullMessage(TopicName, Test.handleExpireFullMsg, func(err error) {
 		fmt.Println("MessageListener error: ", err.Error())
 	})
 }
