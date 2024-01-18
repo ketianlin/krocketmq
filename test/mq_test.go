@@ -24,7 +24,7 @@ func TestRocketMq(t *testing.T) {
 	fmt.Println(configFile)
 	config.Config.Init(configFile)
 	kgin.KGin.Use("rocketmq", producer.ProducerClient.Init, producer.ProducerClient.Close, nil)
-	kgin.KGin.Use("rocketmq", consumer.ConsumerClient.Init, consumer.ConsumerClient.Close, nil)
+	kgin.KGin.Use("rocketmq", consumer.ConsumerClient.Init, consumer.ConsumerClient.Close, consumer.ConsumerClient.MqCheck)
 	go ListenRMQ()
 	//go ListenRMQNew()
 	SendMessage()
@@ -125,7 +125,7 @@ func ListenRMQ() {
 
 func SendMessage() {
 	logs.Debug("rocketmq生产者发消息拉……")
-	for i := 0; i < 2000; i++ {
+	for i := 0; i < 5; i++ {
 		mt := &model.TopicMessage{
 			Msg:       fmt.Sprintf("吊毛来了99999999999999-%d", i),
 			TopicName: TopicName,

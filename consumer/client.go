@@ -60,7 +60,12 @@ func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.
 		ticker := time.NewTicker(time.Second * time.Duration(conf.ConsumerConfig.MonitoringTime))
 		go func() {
 			for _ = range ticker.C {
-				_ = r.MqCheck()
+				err2 := r.MqCheck()
+				if err2 != nil {
+					cm := new(model.InitCallbackMessage)
+					cm.InitError = err2
+					callback(cm)
+				}
 			}
 		}()
 		callback(cm)
@@ -262,13 +267,33 @@ func (r *consumerClient) MessageListenerNew(topicName string, listener func(topi
 	<-forever
 }
 
-func (r *consumerClient) MqCheck() error {
+func (r *consumerClient) MqCheck() (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			var errMsg string
+			switch e := e.(type) {
+			case string:
+				errMsg = e
+			case runtime.Error:
+				errMsg = e.Error()
+			case error:
+				errMsg = e.Error()
+			default:
+				errMsg = "未知错误"
+			}
+			err = errors.New(errMsg)
+		}
+	}()
+	var errorMsg string
 	if r.conn == nil {
+		errorMsg = "MQ连接 r.conn 连接为空：准备初始化MQ连接"
 		fmt.Println("MQ连接 r.conn 连接为空：准备初始化MQ连接")
 		if r.confUrl != "" {
+			errorMsg = fmt.Sprintf("%s 连接不为空，使用配置文件重新初始化MQ连接", r.confUrl)
 			logs.Debug("{} 连接不为空，使用配置文件重新初始化MQ连接", r.confUrl)
 			r.Init(r.confUrl)
 		} else {
+			errorMsg = fmt.Sprintf("%v 配置类不为空，使用配置类重新初始化MQ连接", r.config)
 			logs.Debug("{} 配置类不为空，使用配置类重新初始化MQ连接", r.config)
 			r.InitConfig(r.config, func(im *model.InitCallbackMessage) {
 				logs.Debug("MqCheck running...")
@@ -276,5 +301,8 @@ func (r *consumerClient) MqCheck() error {
 			})
 		}
 	}
-	return nil
+	if errorMsg != "" {
+		err = errors.New(errorMsg)
+	}
+	return err
 }
