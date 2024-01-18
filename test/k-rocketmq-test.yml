@@ -7,7 +7,9 @@ go:
       timeout: 5
       topic_queue_nums: 16
       group: sjProductGroup
+      log_level: error # mq日志级别: debug, warn, error, fatal, info(默认)
     consumer:
       timeout: 300
       group: sjConsumerGroup
+      log_level: error # mq日志级别: debug, warn, error, fatal, info(默认)
 

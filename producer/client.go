@@ -6,6 +6,7 @@ import (
 	"github.com/apache/rocketmq-client-go/v2"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
 	"github.com/apache/rocketmq-client-go/v2/producer"
+	"github.com/apache/rocketmq-client-go/v2/rlog"
 	"github.com/ketianlin/kgin/logs"
 	"github.com/ketianlin/krocketmq/model"
 	"github.com/knadh/koanf"
@@ -15,7 +16,6 @@ import (
 	"github.com/sadlil/gologger"
 	"io/ioutil"
 	"strings"
-	"time"
 )
 
 type producerClient struct {
@@ -64,14 +64,18 @@ func (r *producerClient) Init(rocketmqConfigUrl string) {
 		}
 		nameServers := r.conf.Strings("go.rocketmq.name_servers")
 		retryCount := r.conf.Int("go.rocketmq.producer.retry_count")
-		timeout := r.conf.Int("go.rocketmq.producer.timeout")
+		//timeout := r.conf.Int("go.rocketmq.producer.timeout")
 		topicQueueNums := r.conf.Int("go.rocketmq.producer.topic_queue_nums")
 		productGroup := r.conf.String("go.rocketmq.producer.group")
+		// 日志级别设置
+		logLevel := r.getLogLevel(r.conf.String("go.rocketmq.producer.log_level"))
+		rlog.SetLogLevel(logLevel)
 		p, err := rocketmq.NewProducer(
 			producer.WithNameServer(nameServers), // 接入点地址
 			producer.WithRetry(retryCount),       // 重试次数
 			producer.WithGroupName(productGroup), // 分组名称
-			producer.WithSendMsgTimeout(time.Duration(timeout)*time.Second),
+			//producer.WithSendMsgTimeout(time.Duration(timeout)*time.Second),
+			producer.WithQueueSelector(producer.NewHashQueueSelector()), // 表明使用要发送的队列就是msg中定义的queue
 			producer.WithDefaultTopicQueueNums(topicQueueNums),
 		)
 		if err != nil {
@@ -84,11 +88,15 @@ func (r *producerClient) Init(rocketmqConfigUrl string) {
 
 func (r *producerClient) InitConfig(conf *model.Config, callback func(err error)) {
 	if r.conn == nil {
+		// 日志级别设置
+		logLevel := r.getLogLevel(conf.ProductConfig.LogLevel)
+		rlog.SetLogLevel(logLevel)
 		p, err := rocketmq.NewProducer(
 			producer.WithNameServer(conf.NameServers),         // 接入点地址
 			producer.WithRetry(conf.ProductConfig.RetryCount), // 重试次数
 			producer.WithGroupName(conf.ProductConfig.Group),  // 分组名称
-			producer.WithSendMsgTimeout(time.Duration(conf.ProductConfig.Timeout)*time.Second),
+			//producer.WithSendMsgTimeout(time.Duration(conf.ProductConfig.Timeout)*time.Second),
+			producer.WithQueueSelector(producer.NewHashQueueSelector()), // 表明使用要发送的队列就是msg中定义的queue
 			producer.WithDefaultTopicQueueNums(conf.ProductConfig.TopicQueueNums),
 		)
 		if err != nil {
@@ -116,6 +124,23 @@ func (r *producerClient) Close() {
 	r.conn = nil
 }
 
+func (r *producerClient) getLogLevel(level string) string {
+	var levelFlag string
+	switch strings.ToLower(level) {
+	case "debug":
+		levelFlag = "debug"
+	case "warn":
+		levelFlag = "warn"
+	case "error":
+		levelFlag = "error"
+	case "fatal":
+		levelFlag = "fatal"
+	default:
+		levelFlag = "info"
+	}
+	return levelFlag
+}
+
 // GetCloseError 获取关闭的error
 func (r *producerClient) GetCloseError() error {
 	return r.closeError
@@ -134,7 +159,9 @@ func (r *producerClient) SendSync(message *model.TopicMessage) error {
 	}
 	msg.WithTag(message.Tags)
 	msg.WithKeys(message.Keys)
-
+	if message.ShardingKey != "" {
+		msg.WithShardingKey(message.ShardingKey)
+	}
 	_, err = r.conn.SendSync(context.Background(), msg)
 	return err
 }
@@ -152,7 +179,9 @@ func (r *producerClient) SendSyncReturnResult(message *model.TopicMessage) (*pri
 	}
 	msg.WithTag(message.Tags)
 	msg.WithKeys(message.Keys)
-
+	if message.ShardingKey != "" {
+		msg.WithShardingKey(message.ShardingKey)
+	}
 	return r.conn.SendSync(context.Background(), msg)
 }
 
@@ -169,6 +198,9 @@ func (r *producerClient) SendOne(message *model.TopicMessage) error {
 	}
 	msg.WithTag(message.Tags)
 	msg.WithKeys(message.Keys)
+	if message.ShardingKey != "" {
+		msg.WithShardingKey(message.ShardingKey)
+	}
 	err = r.conn.SendOneWay(context.Background(), msg)
 	return err
 }

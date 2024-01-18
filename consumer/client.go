@@ -7,6 +7,7 @@ import (
 	"github.com/apache/rocketmq-client-go/v2"
 	"github.com/apache/rocketmq-client-go/v2/consumer"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
+	"github.com/apache/rocketmq-client-go/v2/rlog"
 	"github.com/ketianlin/kgin/logs"
 	"github.com/ketianlin/krocketmq/model"
 	"github.com/knadh/koanf"
@@ -34,12 +35,15 @@ var logger = gologger.GetLogger()
 
 func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.InitCallbackMessage)) {
 	if r.conn == nil {
+		// 日志级别设置
+		logLevel := r.getLogLevel(conf.ConsumerConfig.LogLevel)
+		rlog.SetLogLevel(logLevel)
 		c, err := rocketmq.NewPushConsumer(
-			consumer.WithNameServer(conf.NameServers), // 接入点地址
-			consumer.WithConsumerModel(consumer.Clustering),
+			consumer.WithNameServer(conf.NameServers),         // 接入点地址
+			consumer.WithConsumerModel(consumer.Clustering),   // 一条消息在一个组中只有一个consumer消费
 			consumer.WithGroupName(conf.ConsumerConfig.Group), // 分组名称
-			consumer.WithConsumeTimeout(time.Duration(conf.ConsumerConfig.Timeout)*time.Second),
-			consumer.WithConsumerOrder(true),
+			consumer.WithConsumerOrder(true),                  // *顺序接收 必须
+			//consumer.WithConsumeTimeout(time.Duration(conf.ConsumerConfig.Timeout)*time.Second),
 		)
 		cm := new(model.InitCallbackMessage)
 		if err != nil {
@@ -47,13 +51,12 @@ func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.
 			cm.InitError = err
 		} else {
 			r.conn = c
-			logger.Debug("当前 krocketmq 版本：v1.0.12")
-			cm.Version = "当前 krocketmq 版本：v1.0.12"
+			logger.Debug("当前 krocketmq 版本：v1.0.13")
+			cm.Version = "当前 krocketmq 版本：v1.0.13"
 			cm.IsSuccessful = true
 			r.config = conf
 		}
 		// 设置定时任务自动检查
-		//ticker := time.NewTicker(time.Minute * time.Duration(conf.ConsumerConfig.MonitoringTime))
 		ticker := time.NewTicker(time.Second * time.Duration(conf.ConsumerConfig.MonitoringTime))
 		go func() {
 			for _ = range ticker.C {
@@ -62,6 +65,23 @@ func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.
 		}()
 		callback(cm)
 	}
+}
+
+func (r *consumerClient) getLogLevel(level string) string {
+	var levelFlag string
+	switch strings.ToLower(level) {
+	case "debug":
+		levelFlag = "debug"
+	case "warn":
+		levelFlag = "warn"
+	case "error":
+		levelFlag = "error"
+	case "fatal":
+		levelFlag = "fatal"
+	default:
+		levelFlag = "info"
+	}
+	return levelFlag
 }
 
 func (r *consumerClient) Init(rocketmqConfigUrl string) {
@@ -99,14 +119,17 @@ func (r *consumerClient) Init(rocketmqConfigUrl string) {
 			}
 		}
 		nameServers := r.conf.Strings("go.rocketmq.name_servers")
-		timeout := r.conf.Int("go.rocketmq.consumer.timeout")
+		//timeout := r.conf.Int("go.rocketmq.consumer.timeout")
 		consumerGroup := r.conf.String("go.rocketmq.consumer.group")
+		// 日志级别设置
+		logLevel := r.getLogLevel(r.conf.String("go.rocketmq.consumer.log_level"))
+		rlog.SetLogLevel(logLevel)
 		c, err := rocketmq.NewPushConsumer(
-			consumer.WithNameServer(nameServers), // 接入点地址
-			consumer.WithConsumerModel(consumer.Clustering),
-			consumer.WithGroupName(consumerGroup), // 分组名称
-			consumer.WithConsumeTimeout(time.Duration(timeout)*time.Second),
-			consumer.WithConsumerOrder(true),
+			consumer.WithNameServer(nameServers),            // 接入点地址
+			consumer.WithConsumerModel(consumer.Clustering), // 一条消息在一个组中只有一个consumer消费
+			consumer.WithGroupName(consumerGroup),           // 分组名称
+			consumer.WithConsumerOrder(true),                // *顺序接收 必须
+			//consumer.WithConsumeTimeout(time.Duration(timeout)*time.Second),
 		)
 		if err != nil {
 			logger.Error(fmt.Sprintf("RocketMQ创建消费者错误:%s\n", err.Error()))
