@@ -52,8 +52,8 @@ func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.
 			cm.InitError = err
 		} else {
 			r.conn = c
-			logger.Debug("当前 krocketmq 版本：v1.0.14")
-			cm.Version = "当前 krocketmq 版本：v1.0.14"
+			logger.Debug("当前 krocketmq 版本：v1.0.15")
+			cm.Version = "当前 krocketmq 版本：v1.0.15"
 			cm.IsSuccessful = true
 			r.config = conf
 		}
