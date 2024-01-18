@@ -12,4 +12,5 @@ type InitCallbackMessage struct {
 	Version      string // 当前版本号
 	IsSuccessful bool   // 是否初始化成功
 	InitError    error  // 初始化错误信息
+	MqCheckError error  // 检查mq是否重连错误信息
 }

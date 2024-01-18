@@ -28,6 +28,7 @@ type consumerClient struct {
 	conn       rocketmq.PushConsumer
 	closeError error
 	config     *model.Config
+	timeTicker *time.Ticker
 }
 
 var ConsumerClient = &consumerClient{}
@@ -57,13 +58,13 @@ func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.
 			r.config = conf
 		}
 		// 设置定时任务自动检查
-		ticker := time.NewTicker(time.Second * time.Duration(conf.ConsumerConfig.MonitoringTime))
+		r.timeTicker = time.NewTicker(time.Second * time.Duration(conf.ConsumerConfig.MonitoringTime))
 		go func() {
-			for _ = range ticker.C {
+			for _ = range r.timeTicker.C {
 				err2 := r.MqCheck()
 				if err2 != nil {
 					cm := new(model.InitCallbackMessage)
-					cm.InitError = err2
+					cm.MqCheckError = err2
 					callback(cm)
 				}
 			}
@@ -149,21 +150,22 @@ func (r *consumerClient) GetCloseError() error {
 }
 
 func (r *consumerClient) Close() {
-	if r.conn != nil {
-		defer func() {
-			if e := recover(); e != nil {
-				switch e := e.(type) {
-				case string:
-					r.closeError = errors.New(e)
-				case runtime.Error:
-					r.closeError = errors.New(e.Error())
-				case error:
-					r.closeError = e
-				default:
-					r.closeError = errors.New("RocketMQ关闭消费者client错误")
-				}
+	defer func() {
+		r.timeTicker.Stop()
+		if e := recover(); e != nil {
+			switch e := e.(type) {
+			case string:
+				r.closeError = errors.New(e)
+			case runtime.Error:
+				r.closeError = errors.New(e.Error())
+			case error:
+				r.closeError = e
+			default:
+				r.closeError = errors.New("RocketMQ关闭消费者client错误")
 			}
-		}()
+		}
+	}()
+	if r.conn != nil {
 		err := r.conn.Shutdown()
 		if err != nil {
 			logger.Error(fmt.Sprintf("RocketMQ关闭消费者client错误:%s\n", err.Error()))
@@ -265,6 +267,7 @@ func (r *consumerClient) MessageListenerNew(topicName string, listener func(topi
 		log.Fatal(errors.New(errMsg))
 	}
 	<-forever
+	close(forever)
 }
 
 func (r *consumerClient) MqCheck() (err error) {
