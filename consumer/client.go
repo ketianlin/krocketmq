@@ -51,8 +51,8 @@ func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.
 			cm.InitError = err
 		} else {
 			r.conn = c
-			logger.Debug("当前 krocketmq 版本：v1.0.16")
-			cm.Version = "当前 krocketmq 版本：v1.0.16"
+			logger.Debug("当前 krocketmq 版本：v1.0.17")
+			cm.Version = "当前 krocketmq 版本：v1.0.17"
 			r.config = conf
 		}
 		// 设置定时任务自动检查
@@ -240,19 +240,15 @@ func (r *consumerClient) MessageListenerReturnFullMessage(topicName string, list
 	forever := make(chan bool)
 	err = r.conn.Start()
 	if err != nil {
-		//defer func(conn rocketmq.PushConsumer) {
-
-		//}(r.conn)
-
-		err := r.conn.Shutdown()
-		if err != nil {
-			logger.Error(fmt.Sprintf("RocketMQ消费者订阅【%s】主题错误后关闭:%s\n", topicName, err.Error()))
-			if len(callbacks) > 0 {
-				callbacks[0](err)
-			}
+		errAll := err
+		err2 := r.conn.Shutdown()
+		if err2 != nil {
+			errAll = errors.Join(errAll, err2)
 		}
-
-		//log.Fatal(err)
+		logger.Error(fmt.Sprintf("RocketMQ消费者订阅【%s】主题错误后关闭:%s\n", topicName, errAll.Error()))
+		if len(callbacks) > 0 {
+			callbacks[0](err)
+		}
 	}
 	<-forever
 }
