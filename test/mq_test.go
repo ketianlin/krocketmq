@@ -25,8 +25,8 @@ func TestRocketMq(t *testing.T) {
 	config.Config.Init(configFile)
 	kgin.KGin.Use("rocketmq", producer.ProducerClient.Init, producer.ProducerClient.Close, nil)
 	kgin.KGin.Use("rocketmq", consumer.ConsumerClient.Init, consumer.ConsumerClient.Close, consumer.ConsumerClient.MqCheck)
-	go ListenRMQ()
-	//go ListenRMQNew()
+	//go ListenRMQ()
+	go ListenRMQNew()
 	SendMessage()
 	//producer.ProducerClient.Close()
 	//producer.ProducerClient.Close()
@@ -35,37 +35,39 @@ func TestRocketMq(t *testing.T) {
 
 func TestRocketMqByConfig(t *testing.T) {
 	mc := model.Config{
-		NameServers: []string{"192.168.20.130:9876"},
+		NameServers: []string{"192.168.20.135:9876"},
 		ProductConfig: model.ProductConfig{
 			RetryCount:     2,
 			TopicQueueNums: 16,
 			Timeout:        5,
 			Group:          "sjProductGroup",
+			LogLevel:       "error",
 		},
 		ConsumerConfig: model.ConsumerConfig{
-			Timeout: 5,
-			Group:   "sjConsumerGroup2",
+			Timeout:  5,
+			Group:    "sjConsumerGroup2",
+			LogLevel: "error",
 		},
 	}
-	producer.ProducerClient.InitConfig(&mc, func(err error) {
-		fmt.Println("err: ", err)
-	})
+	//producer.ProducerClient.InitConfig(&mc, func(err error) {
+	//	fmt.Println("err: ", err)
+	//})
 	// 关闭生产者判断
-	producer.ProducerClient.Close()
-	if err := producer.ProducerClient.GetCloseError(); err != nil {
-		fmt.Println("关闭生产者失败：", err.Error())
-		return
-	}
+	//producer.ProducerClient.Close()
+	//if err := producer.ProducerClient.GetCloseError(); err != nil {
+	//	fmt.Println("关闭生产者失败：", err.Error())
+	//	return
+	//}
 	consumer.ConsumerClient.InitConfig(&mc, func(im *model.InitCallbackMessage) {
 		fmt.Println("im: ", im)
 	})
-	// 关闭消费者判断
-	consumer.ConsumerClient.Close()
-	if err := consumer.ConsumerClient.GetCloseError(); err != nil {
-		fmt.Println("关闭消费者失败：", err.Error())
-		return
-	}
-	//go ListenRMQ()
+	//// 关闭消费者判断
+	//consumer.ConsumerClient.Close()
+	//if err := consumer.ConsumerClient.GetCloseError(); err != nil {
+	//	fmt.Println("关闭消费者失败：", err.Error())
+	//	return
+	//}
+	go ListenRMQ()
 	//SendMessage()
 	select {}
 }

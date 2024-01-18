@@ -16,7 +16,6 @@ import (
 	"github.com/levigross/grequests"
 	"github.com/sadlil/gologger"
 	"io/ioutil"
-	"log"
 	"runtime"
 	"strings"
 	"time"
@@ -52,9 +51,8 @@ func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.
 			cm.InitError = err
 		} else {
 			r.conn = c
-			logger.Debug("当前 krocketmq 版本：v1.0.15")
-			cm.Version = "当前 krocketmq 版本：v1.0.15"
-			cm.IsSuccessful = true
+			logger.Debug("当前 krocketmq 版本：v1.0.16")
+			cm.Version = "当前 krocketmq 版本：v1.0.16"
 			r.config = conf
 		}
 		// 设置定时任务自动检查
@@ -193,21 +191,40 @@ func (r *consumerClient) MessageListener(topicName string, listener func(msg []b
 	forever := make(chan bool)
 	err = r.conn.Start()
 	if err != nil {
-		defer func(conn rocketmq.PushConsumer) {
-			err := conn.Shutdown()
-			if err != nil {
-				logger.Error(fmt.Sprintf("RocketMQ消费者订阅【%s】主题错误后关闭:%s\n", topicName, err.Error()))
-				if len(callbacks) > 0 {
-					callbacks[0](err)
-				}
+		//defer func(conn rocketmq.PushConsumer) {
+		//
+		//}(r.conn)
+		err := r.conn.Shutdown()
+		if err != nil {
+			logger.Error(fmt.Sprintf("RocketMQ消费者订阅【%s】主题错误后关闭:%s\n", topicName, err.Error()))
+			if len(callbacks) > 0 {
+				callbacks[0](err)
 			}
-		}(r.conn)
-		log.Fatal(err)
+		}
+		//log.Fatal(err)
 	}
 	<-forever
 }
 
 func (r *consumerClient) MessageListenerReturnFullMessage(topicName string, listener func(msg *primitive.MessageExt), callbacks ...func(err error)) {
+	defer func() {
+		r.timeTicker.Stop()
+		if e := recover(); e != nil {
+			switch e := e.(type) {
+			case string:
+				r.closeError = errors.New(e)
+			case runtime.Error:
+				r.closeError = errors.New(e.Error())
+			case error:
+				r.closeError = e
+			default:
+				r.closeError = errors.New("RocketMQ关闭消费者client错误")
+			}
+			if len(callbacks) > 0 {
+				callbacks[0](r.closeError)
+			}
+		}
+	}()
 	err := r.conn.Subscribe(topicName, consumer.MessageSelector{}, func(ctx context.Context, msg ...*primitive.MessageExt) (consumer.ConsumeResult, error) {
 		for _, v := range msg {
 			go listener(v)
@@ -223,16 +240,19 @@ func (r *consumerClient) MessageListenerReturnFullMessage(topicName string, list
 	forever := make(chan bool)
 	err = r.conn.Start()
 	if err != nil {
-		defer func(conn rocketmq.PushConsumer) {
-			err := conn.Shutdown()
-			if err != nil {
-				logger.Error(fmt.Sprintf("RocketMQ消费者订阅【%s】主题错误后关闭:%s\n", topicName, err.Error()))
-				if len(callbacks) > 0 {
-					callbacks[0](err)
-				}
+		//defer func(conn rocketmq.PushConsumer) {
+
+		//}(r.conn)
+
+		err := r.conn.Shutdown()
+		if err != nil {
+			logger.Error(fmt.Sprintf("RocketMQ消费者订阅【%s】主题错误后关闭:%s\n", topicName, err.Error()))
+			if len(callbacks) > 0 {
+				callbacks[0](err)
 			}
-		}(r.conn)
-		log.Fatal(err)
+		}
+
+		//log.Fatal(err)
 	}
 	<-forever
 }
@@ -264,7 +284,7 @@ func (r *consumerClient) MessageListenerNew(topicName string, listener func(topi
 		if len(callbacks) > 0 {
 			callbacks[0](err)
 		}
-		log.Fatal(errors.New(errMsg))
+		//log.Fatal(errors.New(errMsg))
 	}
 	<-forever
 	close(forever)
