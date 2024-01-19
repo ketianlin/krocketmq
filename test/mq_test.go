@@ -44,14 +44,15 @@ func TestRocketMqByConfig(t *testing.T) {
 			LogLevel:       "error",
 		},
 		ConsumerConfig: model.ConsumerConfig{
-			Timeout:  5,
-			Group:    "sjConsumerGroup2",
-			LogLevel: "error",
+			Timeout:        5,
+			Group:          "sjConsumerGroup2",
+			MonitoringTime: 10,
+			LogLevel:       "error",
 		},
 	}
-	//producer.ProducerClient.InitConfig(&mc, func(err error) {
-	//	fmt.Println("err: ", err)
-	//})
+	producer.ProducerClient.InitConfig(&mc, func(err error) {
+		fmt.Println("err: ", err)
+	})
 	// 关闭生产者判断
 	//producer.ProducerClient.Close()
 	//if err := producer.ProducerClient.GetCloseError(); err != nil {
@@ -68,7 +69,7 @@ func TestRocketMqByConfig(t *testing.T) {
 	//	return
 	//}
 	go ListenRMQ()
-	//SendMessage()
+	SendMessage()
 	select {}
 }
 

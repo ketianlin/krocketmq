@@ -27,7 +27,8 @@ type consumerClient struct {
 	conn       rocketmq.PushConsumer
 	closeError error
 	config     *model.Config
-	timeTicker *time.Ticker
+	//timeTicker            *time.Ticker
+	stopMqCheckTickerChan chan bool
 }
 
 var ConsumerClient = &consumerClient{}
@@ -51,24 +52,50 @@ func (r *consumerClient) InitConfig(conf *model.Config, callback func(im *model.
 			cm.InitError = err
 		} else {
 			r.conn = c
-			logger.Debug("当前 krocketmq 版本：v1.0.17")
-			cm.Version = "当前 krocketmq 版本：v1.0.17"
+			logger.Debug("当前 krocketmq 版本：v1.0.18")
+			cm.Version = "当前 krocketmq 版本：v1.0.18"
 			r.config = conf
 		}
 		// 设置定时任务自动检查
-		r.timeTicker = time.NewTicker(time.Second * time.Duration(conf.ConsumerConfig.MonitoringTime))
-		go func() {
-			for _ = range r.timeTicker.C {
+		r.mqCheckTicker(conf.ConsumerConfig.MonitoringTime, callback)
+		//r.timeTicker = time.NewTicker(time.Second * time.Duration(conf.ConsumerConfig.MonitoringTime))
+		//go func() {
+		//	for _ = range r.timeTicker.C {
+		//		err2 := r.MqCheck()
+		//		if err2 != nil {
+		//			cm := new(model.InitCallbackMessage)
+		//			cm.MqCheckError = err2
+		//			callback(cm)
+		//		}
+		//	}
+		//}()
+		callback(cm)
+	}
+}
+
+func (r *consumerClient) mqCheckTicker(monitoringTime int, callback func(im *model.InitCallbackMessage)) {
+	// 设置定时任务自动检查
+	tTicker := time.NewTicker(time.Second * time.Duration(monitoringTime))
+	r.stopMqCheckTickerChan = make(chan bool)
+	go func(ticker *time.Ticker, callback func(im *model.InitCallbackMessage)) {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
 				err2 := r.MqCheck()
 				if err2 != nil {
 					cm := new(model.InitCallbackMessage)
 					cm.MqCheckError = err2
 					callback(cm)
 				}
+			case stop := <-r.stopMqCheckTickerChan:
+				if stop {
+					logger.Error("关闭定时器检查rocketmq的连接是否存在任务")
+					return
+				}
 			}
-		}()
-		callback(cm)
-	}
+		}
+	}(tTicker, callback)
 }
 
 func (r *consumerClient) getLogLevel(level string) string {
@@ -149,7 +176,10 @@ func (r *consumerClient) GetCloseError() error {
 
 func (r *consumerClient) Close() {
 	defer func() {
-		r.timeTicker.Stop()
+		if r.stopMqCheckTickerChan != nil {
+			r.stopMqCheckTickerChan <- true
+			close(r.stopMqCheckTickerChan)
+		}
 		if e := recover(); e != nil {
 			switch e := e.(type) {
 			case string:
@@ -208,7 +238,10 @@ func (r *consumerClient) MessageListener(topicName string, listener func(msg []b
 
 func (r *consumerClient) MessageListenerReturnFullMessage(topicName string, listener func(msg *primitive.MessageExt), callbacks ...func(err error)) {
 	defer func() {
-		r.timeTicker.Stop()
+		if r.stopMqCheckTickerChan != nil {
+			r.stopMqCheckTickerChan <- true
+			close(r.stopMqCheckTickerChan)
+		}
 		if e := recover(); e != nil {
 			switch e := e.(type) {
 			case string:
