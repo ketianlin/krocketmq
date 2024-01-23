@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-const TopicName = "sj17"
+const TopicName = "Queue_809_FuQing_Up"
 
 func TestClose(t *testing.T) {
 	producer.ProducerClient.Close()
@@ -23,11 +23,11 @@ func TestRocketMq(t *testing.T) {
 	configFile := "/home/ke666/my_codes/go_codes/krocketmq/test/krocketmq.yml"
 	fmt.Println(configFile)
 	config.Config.Init(configFile)
-	kgin.KGin.Use("rocketmq", producer.ProducerClient.Init, producer.ProducerClient.Close, nil)
+	//kgin.KGin.Use("rocketmq", producer.ProducerClient.Init, producer.ProducerClient.Close, nil)
 	kgin.KGin.Use("rocketmq", consumer.ConsumerClient.Init, consumer.ConsumerClient.Close, consumer.ConsumerClient.MqCheck)
 	//go ListenRMQ()
 	go ListenRMQNew()
-	SendMessage()
+	//SendMessage()
 	//producer.ProducerClient.Close()
 	//producer.ProducerClient.Close()
 	select {}
@@ -45,14 +45,14 @@ func TestRocketMqByConfig(t *testing.T) {
 		},
 		ConsumerConfig: model.ConsumerConfig{
 			Timeout:        5,
-			Group:          "sjConsumerGroup2",
+			Group:          "sjConsumerGroup33",
 			MonitoringTime: 10,
 			LogLevel:       "error",
 		},
 	}
-	producer.ProducerClient.InitConfig(&mc, func(err error) {
-		fmt.Println("err: ", err)
-	})
+	//producer.ProducerClient.InitConfig(&mc, func(err error) {
+	//	fmt.Println("err: ", err)
+	//})
 	// 关闭生产者判断
 	//producer.ProducerClient.Close()
 	//if err := producer.ProducerClient.GetCloseError(); err != nil {
@@ -69,7 +69,7 @@ func TestRocketMqByConfig(t *testing.T) {
 	//	return
 	//}
 	go ListenRMQ()
-	SendMessage()
+	//SendMessage()
 	select {}
 }
 
@@ -92,10 +92,12 @@ func (o *testEventHandler) handleExpireMsg(msg []byte) {
 }
 
 func (o *testEventHandler) handleExpireMsgNew(topicName string, msg []byte) {
-	logs.Debug("topic: 【{}】, 接收到原始消息 {}", topicName, string(msg))
-	safeHandler(msg, func(msg []byte) {
-		logs.Info("topic: 【{}】, 打印序列化后消息：{}", topicName, string(msg))
-	})
+	//logs.Debug("topic: 【{}】, 接收到原始消息 {}", topicName, string(msg))
+	logs.Info("{}", string(msg))
+	//safeHandler(msg, func(msg []byte) {
+	//	//logs.Info("topic: 【{}】, 打印序列化后消息：{}", topicName, string(msg))
+	//	logs.Debug(string(msg))
+	//})
 }
 
 func safeHandler(msg []byte, handler func(msg []byte)) {
@@ -112,7 +114,7 @@ func safeHandler(msg []byte, handler func(msg []byte)) {
 func ListenRMQNew() {
 	logs.Debug("rocketmq客户端 获取连接成功")
 	consumer.ConsumerClient.MessageListenerNew(TopicName, Test.handleExpireMsgNew, func(err error) {
-		fmt.Println("MessageListener error: ", err.Error())
+		logs.Debug("MessageListener error: ", err.Error())
 	})
 }
 
@@ -135,7 +137,7 @@ func SendMessage() {
 			Tags:      "sj-tag",
 			Keys:      []string{"sj-key"},
 		}
-		mt.ShardingKey = "9999"
+		mt.ShardingKey = "d9999"
 		err := producer.ProducerClient.SendSync(mt)
 		if err != nil {
 			logs.Error("rocketmq发送消息失败")

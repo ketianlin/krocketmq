@@ -11,4 +11,4 @@ go:
   logger:
     level: debug
     out: console,file
-    file: /opt/logs/krocketmq
+    file: ./logs/krocketmq
